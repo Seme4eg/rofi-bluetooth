@@ -20,8 +20,13 @@ kb_quick_forget="Alt+x"
 
 goback="← back"
 
+###############################################################################
+#                               Main menu logic                                #
+###############################################################################
+
 # Checks if bluetooth controller is powered on
-power_on() { bluetoothctl show | grep -q "Powered: yes"; }
+is_bt_on() { bluetoothctl show | grep -q "Powered: yes"; }
+
 # returns a list of all bluetooth devices in a form of 'name' ⇨ 'mac'
 get_devices() {
   bluetoothctl devices | awk '{
@@ -32,7 +37,7 @@ get_devices() {
 }
 
 toggle_power() {
-  if power_on; then
+  if is_bt_on; then
     bluetoothctl power off
   else
     rfkill list bluetooth | grep -q 'blocked: yes' &&
@@ -106,8 +111,13 @@ toggle_discoverable() {
   show_menu
 }
 
-device_connected() {
-  if bluetoothctl info "$1" | grep -q "Connected: yes"; then
+###############################################################################
+#                             Device submenu logic                            #
+###############################################################################
+
+is_connected() {
+  mac="$1"
+  if bluetoothctl info "$mac" | grep -q "Connected: yes"; then
     echo "Connected: yes" && return 0
   else
     echo "Connected: no" && return 1
@@ -115,16 +125,17 @@ device_connected() {
 }
 
 toggle_connection() {
-  if device_connected "$1"; then
-    bluetoothctl disconnect "$1"
+  mac="$1"
+  if is_connected "$mac"; then
+    bluetoothctl disconnect "$mac"
   else
-    bluetoothctl connect "$1"
+    bluetoothctl connect "$mac"
   fi
 }
 
-device_paired() {
-  device_info=$(bluetoothctl info "$1")
-  if echo "$device_info" | grep -q "Paired: yes"; then
+is_paired() {
+  mac="$1"
+  if bluetoothctl info "$mac" | grep -q "Paired: yes"; then
     echo "Paired: yes" && return 0
   else
     echo "Paired: no" && return 1
@@ -132,17 +143,17 @@ device_paired() {
 }
 
 toggle_paired() {
-  if device_paired "$1"; then
-    bluetoothctl remove "$1"
+  mac="$1"
+  if is_paired "$mac"; then
+    bluetoothctl remove "$mac"
   else
-    bluetoothctl pair "$1"
+    bluetoothctl pair "$mac"
   fi
-  device_menu "$1" # passing mac
 }
 
 device_trusted() {
-  device_info=$(bluetoothctl info "$1")
-  if echo "$device_info" | grep -q "Trusted: yes"; then
+  mac="$1"
+  if bluetoothctl info "$mac" | grep -q "Trusted: yes"; then
     echo "Trusted: yes" && return 0
   else
     echo "Trusted: no" && return 1
@@ -150,33 +161,43 @@ device_trusted() {
 }
 
 toggle_trust() {
-  if device_trusted "$1"; then
-    bluetoothctl untrust "$1"
+  mac="$1"
+  if device_trusted "$mac"; then
+    bluetoothctl untrust "$mac"
   else
-    bluetoothctl trust "$1"
+    bluetoothctl trust "$mac"
   fi
-  device_menu "$1" # passing mac
 }
 
-get_device_mac() { echo "$1" | cut -d' ' -f 2; }
+###############################################################################
+#                               Helper functions                              #
+###############################################################################
 
-# NOTE: will break if there will be 2 devices with same name
-get_device() { bluetoothctl devices | grep "$option"; }
+get_mac() { expr "$1" : '.*⇨ \([0-9A-F:]*\)'; }
+
+# checks that passed line contains mac address of a bluetooth device
+is_device() { echo "$1" | grep -qP '([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}'; }
+
+###############################################################################
+#                                 Menus logic                                 #
+###############################################################################
 
 # A submenu for a specific device that allows connecting, pairing, and trusting
-device_menu() {
-  mac="$1"
+device_menu() { # receives user chosen line as is with no changes
+  local device_info="$1"
+  local mac
+  mac="$(get_mac "$1")"
 
   local -a options
 
   # Build options
-  connected="$(device_connected "$mac") ($kb_quick_connect)"
-  paired="$(device_paired "$mac") ($kb_quick_forget)"
+  connected="$(is_connected "$mac") ($kb_quick_connect)"
+  paired="$(is_paired "$mac") ($kb_quick_forget)"
   trusted=$(device_trusted "$mac")
-  options=("$connected" "$paired" "$trusted" "$goback")
+  options=("$device_info" "$connected" "$paired" "$trusted" "$goback")
 
   # Open rofi menu, read option
-  option="$(printf '%s\n' "${options[@]}" | _rofi "$device_name")"
+  option=$(printf '%s\n' "${options[@]}" | _rofi -selected-row 1)
   [ "$?" -eq 1 ] && exit
 
   # Match option to command
@@ -192,34 +213,38 @@ device_menu() {
 # Opens a rofi menu with current bluetooth status and options to connect
 show_menu() {
   local -a options
-  local power
-  local device # will be used in subsequent functions
 
-  if power_on; then
-    power="Power: on ($kb_restart to restart)"
+  if is_bt_on; then
+    local power="Power: on ($kb_restart to restart)"
 
-    scan="Scan for devices"
+    local scan="Scan for devices"
+    local pairable
     pairable=$(pairable)
+    local discoverable
     discoverable=$(discoverable)
+    local -a devices
     options=("$power" "$scan" "$pairable" "$discoverable")
 
     # Human-readable names of devices, one per line
     # If scan is off, will only list paired devices
     devices=$(get_devices)
 
-    [ "$devices" ] && options+=("---" "$devices")
+    # check needed otherwise empty newline will be appended
+    [ -n "$devices" ] && options+=("$devices")
   else
-    power="Power: off"
+    local power="Power: off"
     options=("$power")
   fi
 
+  # variable what will contain string consisting of 'name' and 'mac' of device
+  local option
   option=$(printf '%s\n' "${options[@]}" | _rofi \
     -kb-custom-1 "$kb_restart" \
     -kb-accept-custom "" \
     -kb-custom-2 "$kb_quick_connect" \
     -kb-custom-3 "$kb_quick_forget")
 
-  rofi_exit=$?
+  local rofi_exit=$?
 
   [ "$rofi_exit" -eq 1 ] && exit
 
@@ -239,8 +264,8 @@ show_menu() {
       bluetoothctl power on
       show_menu
       ;;
-    11) get_device && toggle_connection "$(get_device_mac "$(get_device)")" ;;
-    12) get_device && toggle_paired "$(get_device_mac "$(get_device)")" ;;
+    11) is_device && toggle_connection "$option" ;;
+    12) is_device && toggle_paired "$option" ;;
   esac
 }
 
