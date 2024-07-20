@@ -6,7 +6,7 @@
 # |_|  \___/|_| |_|     |_.__/|_|\__,_|\___|\__\___/ \___/ \__|_| |_|
 #
 # This code was forked from https://github.com/nickclyde/rofi-bluetooth
-#   hence all my further work on it continues under the original license
+#   hence all my further work on it continues under the original GPL license
 #
 # A script that generates a rofi menu that uses bluetoothctl to
 # connect to bluetooth devices and display status info.
