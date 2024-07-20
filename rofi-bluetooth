@@ -22,6 +22,14 @@ goback="← back"
 
 # Checks if bluetooth controller is powered on
 power_on() { bluetoothctl show | grep -q "Powered: yes"; }
+# returns a list of all bluetooth devices in a form of 'name' ⇨ 'mac'
+get_devices() {
+  bluetoothctl devices | awk '{
+  mac = $2
+  name = substr($0, index($0,$3))
+  printf "%s <span alpha=\"50%\">⇨ %s</span>\n", name, mac
+}'
+}
 
 toggle_power() {
   if power_on; then
@@ -197,7 +205,7 @@ show_menu() {
 
     # Human-readable names of devices, one per line
     # If scan is off, will only list paired devices
-    devices=$(bluetoothctl devices | grep Device | cut -d ' ' -f 3-)
+    devices=$(get_devices)
 
     [ "$devices" ] && options+=("---" "$devices")
   else
@@ -248,6 +256,6 @@ show_menu() {
 }
 
 # Rofi command to pipe into, can add any options here
-_rofi() { rofi -dmenu -i "$@"; }
+_rofi() { rofi -dmenu -markup-rows -i "$@"; }
 
 show_menu
