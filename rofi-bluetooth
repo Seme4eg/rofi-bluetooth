@@ -230,18 +230,7 @@ show_menu() {
         "$scan") enable_scan ;;
         "$discoverable") toggle_discoverable ;;
         "$pairable") toggle_pairable ;;
-        *)
-          # Open a submenu if a device is selected
-          if get_device; then
-            mac=$(get_device_mac "$(get_device)")
-            case $rofi_exit in
-              10) toggle_connection "$mac" ;;
-              11) toggle_paired "$mac" ;;
-              12) toggle_trust "$mac" ;;
-              *) device_menu "$mac" ;;
-            esac
-          fi
-          ;;
+        *) is_device "$option" && device_menu "$option" ;;
       esac
       ;;
     10)
