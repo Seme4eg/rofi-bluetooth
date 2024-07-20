@@ -64,7 +64,6 @@ EOF
   show_menu
 }
 
-# Checks if controller is able to pair to devices
 pairable() {
   if bluetoothctl show | grep -q "Pairable: yes"; then
     echo "Pairable: on" && return 0
@@ -82,7 +81,6 @@ toggle_pairable() {
   show_menu
 }
 
-# Checks if controller is discoverable by other devices
 discoverable() {
   if bluetoothctl show | grep -q "Discoverable: yes"; then
     echo "Discoverable: on" && return 0
@@ -91,7 +89,6 @@ discoverable() {
   fi
 }
 
-# Toggles discoverable state
 toggle_discoverable() {
   if discoverable; then
     bluetoothctl discoverable off
@@ -101,7 +98,6 @@ toggle_discoverable() {
   show_menu
 }
 
-# Checks if a device is connected
 device_connected() {
   if bluetoothctl info "$1" | grep -q "Connected: yes"; then
     echo "Connected: yes" && return 0
@@ -110,7 +106,6 @@ device_connected() {
   fi
 }
 
-# Toggles device connection
 toggle_connection() {
   if device_connected "$1"; then
     bluetoothctl disconnect "$1"
@@ -119,7 +114,6 @@ toggle_connection() {
   fi
 }
 
-# Checks if a device is paired
 device_paired() {
   device_info=$(bluetoothctl info "$1")
   if echo "$device_info" | grep -q "Paired: yes"; then
@@ -129,7 +123,6 @@ device_paired() {
   fi
 }
 
-# Toggles device paired state
 toggle_paired() {
   if device_paired "$1"; then
     bluetoothctl remove "$1"
@@ -139,7 +132,6 @@ toggle_paired() {
   device_menu "$1" # passing mac
 }
 
-# Checks if a device is trusted
 device_trusted() {
   device_info=$(bluetoothctl info "$1")
   if echo "$device_info" | grep -q "Trusted: yes"; then
@@ -149,7 +141,6 @@ device_trusted() {
   fi
 }
 
-# Toggles device connection
 toggle_trust() {
   if device_trusted "$1"; then
     bluetoothctl untrust "$1"
