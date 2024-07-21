@@ -205,27 +205,30 @@ device_menu() { # receives user chosen line as is with no changes
 
   local -a options
 
-  # Build options
   connected="$(is_connected "$mac") ($kb_quick_connect)"
   paired="$(is_paired "$mac") ($kb_quick_forget)"
   trusted=$(device_trusted "$mac")
   options=("$device_info" "$connected" "$paired" "$trusted" "$goback")
 
-  # Open rofi menu, read option
-  option=$(printf '%s\n' "${options[@]}" | _rofi -selected-row 1)
-  [ "$?" -eq 1 ] && exit
+  option=$(printf '%s\n' "${options[@]}" |
+    _rofi -selected-row 1 -kb-accept-custom "" \
+      -kb-custom-1 "$kb_quick_connect" \
+      -kb-custom-2 "$kb_quick_forget")
+  rofi_exit="$?"
+  [ "$rofi_exit" -eq 1 ] && exit
 
-  # Match option to command
+  # pressed keybinding is more important than selected entry
+  [ "$rofi_exit" -ne 0 ] && option="$rofi_exit"
+
   case "$option" in
     "") echo "No option chosen." ;;
-    "$connected") toggle_connection "$mac" ;;
-    "$paired") toggle_paired "$mac" ;;
+    10 | "$connected") toggle_connection "$mac" ;;
+    11 | "$paired") toggle_paired "$mac" ;;
     "$trusted") toggle_trust "$mac" ;;
     "$goback") show_menu ;;
   esac
 }
 
-# Opens a rofi menu with current bluetooth status and options to connect
 show_menu() {
   local -a options
 
