@@ -12,6 +12,10 @@
 # connect to bluetooth devices and display status info.
 #
 
+###############################################################################
+#                                Configurables                                #
+###############################################################################
+
 kb_restart="Control+r"
 # toggle device, without submenu
 kb_quick_connect="Control+Return"
@@ -19,6 +23,10 @@ kb_quick_connect="Control+Return"
 kb_quick_forget="Alt+x"
 
 goback="← back"
+
+# Whatever notify logic you want to use.
+# On my system i have a script called 'say'
+_notify() { say "$@"; }
 
 ###############################################################################
 #                               Main menu logic                                #
@@ -48,7 +56,7 @@ toggle_power() {
 }
 
 restart_bt() {
-  say "Restarting bluetooth"
+  _notify "Restarting bluetooth"
   bluetoothctl power off
   bluetoothctl power on
   show_menu
@@ -56,7 +64,7 @@ restart_bt() {
 
 # Toggles scanning state
 enable_scan() {
-  say -t 5000 -e "Scanning for pairable bluetooth devices..."
+  _notify -t 5000 -e "Scanning for pairable bluetooth devices..."
 
   # solution source: https://bbs.archlinux.org/viewtopic.php?id=270044
 
