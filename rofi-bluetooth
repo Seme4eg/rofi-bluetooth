@@ -265,9 +265,9 @@ show_menu() {
         *) is_device "$option" && device_menu "$option" ;;
       esac
       ;;
-    11) is_device && toggle_connection "$option" ;;
-    12) is_device && toggle_paired "$option" ;;
     10) restart_bt ;;
+    11) is_device "$option" && toggle_connection "$(get_mac "$option")" ;;
+    12) is_device "$option" && toggle_paired "$(get_mac "$option")" ;;
   esac
 }
 
