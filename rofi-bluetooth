@@ -245,17 +245,14 @@ show_menu() {
 
   # variable what will contain string consisting of 'name' and 'mac' of device
   local option
-  option=$(printf '%s\n' "${options[@]}" | _rofi \
-    -kb-custom-1 "$kb_restart" \
-    -kb-accept-custom "" \
-    -kb-custom-2 "$kb_quick_connect" \
-    -kb-custom-3 "$kb_quick_forget")
+  option=$(printf '%s\n' "${options[@]}" |
+    _rofi -kb-accept-custom "" \
+      -kb-custom-1 "$kb_restart" \
+      -kb-custom-2 "$kb_quick_connect" \
+      -kb-custom-3 "$kb_quick_forget")
 
-  local rofi_exit=$?
-
-  [ "$rofi_exit" -eq 1 ] && exit
-
-  case "$rofi_exit" in
+  case "$?" in
+    1) exit ;;
     0)
       case "$option" in
         "$power") toggle_power ;;
