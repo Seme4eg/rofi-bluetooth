@@ -1,0 +1,21 @@
+#+title: rofi-bluetooth
+
+[[./assets/main_menu.png]]
+
+[[./assets/device_submenu.png]]
+
+For now there is no AUR package for this fork, but you can find original script
+[[https://aur.archlinux.org/packages/rofi-bluetooth-git][here]]
+
+Dependencies: [[https://github.com/davatorium/rofi][rofi]] and bluetoothctl (provided by ~bluez-utils~ in Arch)
+
+Custom keybindings (configurable):
+- ~Ctrl+r~ - bluetoothctl power off -> power on (restart)
+- ~Ctrl+Return~ - toggle connection to selected device without entering the
+  submenu
+- ~Alx+x~ - quick forget the device without the submenu
+
+For all configurables see the ~Configurables~ section in the script itself, for
+now there is no external config file support because i think its redundant. But
+if will be requested by many - will be added.
+
