@@ -47,6 +47,13 @@ toggle_power() {
   show_menu
 }
 
+restart_bt() {
+  say "Restarting bluetooth"
+  bluetoothctl power off
+  bluetoothctl power on
+  show_menu
+}
+
 # Toggles scanning state
 enable_scan() {
   say -t 5000 -e "Scanning for pairable bluetooth devices..."
@@ -258,14 +265,9 @@ show_menu() {
         *) is_device "$option" && device_menu "$option" ;;
       esac
       ;;
-    10)
-      say "Restarting bluetooth"
-      bluetoothctl power off
-      bluetoothctl power on
-      show_menu
-      ;;
     11) is_device && toggle_connection "$option" ;;
     12) is_device && toggle_paired "$option" ;;
+    10) restart_bt ;;
   esac
 }
 
