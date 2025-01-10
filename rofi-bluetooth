@@ -38,10 +38,10 @@ is_bt_on() { bluetoothctl show | grep -q "Powered: yes"; }
 # returns a list of all bluetooth devices in a form of 'name' ⇨ 'mac'
 get_devices() {
   bluetoothctl devices | awk '{
-  mac = $2
-  name = substr($0, index($0,$3))
-  printf "%s <span alpha=\"50%\">⇨ %s</span>\n", name, mac
-}'
+    mac = $2
+    name = substr($0, index($0,$3))
+    printf "%s <span alpha=\"50%\">⇨ %s</span>\n", name, mac
+  }'
 }
 
 toggle_power() {
@@ -66,28 +66,15 @@ restart_bt() {
 enable_scan() {
   _notify -t 5000 -e "Scanning for pairable bluetooth devices..."
 
-  # solution source: https://bbs.archlinux.org/viewtopic.php?id=270044
+  # solution source: https://gist.github.com/RamonGilabert/046727b302b4d9fb0055
+  # https://www.geeksforgeeks.org/coproc-command-in-linux-with-examples/
+  coproc ubt { bluetoothctl; } # echo "$ubt_PID"
+  _bt() { echo -e $@ >&"${ubt[1]}"; }
+  _bt agent on
 
-  # device="00:1B:66:88:1D:52"
-
-  expect <(
-    cat <<EOF
-spawn bluetoothctl
-send -- "scan on\r"
-sleep 5
-send -- "exit\r"
-expect eof
-EOF
-  )
-
-  # set timeout 60
-  # expect "$device"
-  # send -- "pair $device\r"
-  # expect "Pairing successful"
-  # send -- "connect $device\r"
-  # expect "Connection successful"
-  # send -- "trust $device\r"
-  # expect "trust succeeded"
+  _bt scan on
+  sleep 3
+  _bt exit
 
   show_menu
 }
@@ -162,7 +149,8 @@ toggle_paired() {
   if is_paired "$mac"; then
     bluetoothctl remove "$mac"
   else
-    bluetoothctl pair "$mac"
+    # connect because some devices like to disconnect after pairing
+    bluetoothctl pair "$mac" && bluetoothctl connect "$mac"
   fi
 }
 
@@ -205,10 +193,14 @@ device_menu() { # receives user chosen line as is with no changes
 
   local -a options
 
-  connected="$(is_connected "$mac") ($kb_quick_connect)"
+  options=("$device_info")
+  if is_paired "$mac"; then
+    connected="$(is_connected "$mac") ($kb_quick_connect)"
+    options+=("$connected")
+  fi
   paired="$(is_paired "$mac") ($kb_quick_forget)"
   trusted=$(device_trusted "$mac")
-  options=("$device_info" "$connected" "$paired" "$trusted" "$goback")
+  options+=("$paired" "$trusted" "$goback")
 
   option=$(printf '%s\n' "${options[@]}" |
     _rofi -selected-row 1 -kb-accept-custom "" \
@@ -274,7 +266,16 @@ show_menu() {
       esac
       ;;
     10) restart_bt ;;
-    11) is_device "$option" && toggle_connection "$(get_mac "$option")" ;;
+    11)
+      if is_device "$option"; then
+        mac="$(get_mac "$option")"
+        if ! is_paired "$mac"; then
+          toggle_paired "$mac"
+        else
+          toggle_connection "$mac"
+        fi
+      fi
+      ;;
     12) is_device "$option" && toggle_paired "$(get_mac "$option")" ;;
   esac
 }
